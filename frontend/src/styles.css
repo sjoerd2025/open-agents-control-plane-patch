@@ -1,0 +1,1278 @@
+/* Layout glue around Kumo. We lean on Kumo's design tokens
+   (`--color-kumo-*`, `--text-color-kumo-*`) so light/dark mode and the brand
+   palette come for free, and only define styles for the bits Kumo doesn't
+   ship — page header, top bar, custom tables, terminal panes, etc. */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+body {
+  background: var(--color-kumo-canvas);
+  color: var(--text-color-kumo-default);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--text-color-kumo-link);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+code {
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: 0.85em;
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+  background: var(--color-kumo-tint);
+}
+
+.mono {
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: 0.8125rem;
+}
+
+.muted {
+  color: var(--text-color-kumo-subtle);
+}
+
+/* ---------- App shell ---------- */
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-kumo-canvas);
+}
+
+/* Match the topbar's 56px min-height so the sidebar header and top bar
+   sit on the same baseline. Kumo's Sidebar.Header already supplies its
+   own px-2 py-3 padding, so .sidebar-account just lays out the logo and
+   label inside it without adding extra vertical padding. */
+[data-sidebar="header"] {
+  min-height: 56px;
+}
+.sidebar-account {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+.sidebar-account svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+.sidebar-account-name {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: var(--text-color-kumo-default);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-state="collapsed"] .sidebar-account-name {
+  display: none;
+}
+
+/* ---- Sidebar full-height layout fix ----
+   Kumo's sidebar wrapper applies `min-h-svh` and the inner <aside> uses
+   `h-full`. Because `height: 100%` only resolves against an explicit parent
+   height (not min-height), the aside collapses to its content height and
+   the collapse-trigger floats just below the menu. We force the wrapper and
+   the aside to a real viewport height so the aside fills the screen and the
+   footer can pin to the bottom. */
+[data-sidebar-wrapper] {
+  height: 100vh;
+  height: 100svh;
+}
+[data-sidebar="sidebar"] {
+  height: 100vh;
+  height: 100svh;
+}
+/* Pin the footer (collapse trigger) to the bottom of the sidebar column. */
+[data-sidebar="footer"] {
+  margin-top: auto;
+}
+/* Keep the main content scrollable independently of the sidebar so a long
+   page doesn't push the topbar above the viewport. */
+.app-main {
+  height: 100vh;
+  height: 100svh;
+  overflow-y: auto;
+}
+
+.app-topbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.65rem 1.5rem;
+  border-bottom: 1px solid var(--color-kumo-fill);
+  background: var(--color-kumo-base);
+  min-height: 56px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.app-topbar-meta {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-left: auto;
+}
+
+/* Anchors inside detail values that point off to Claude Platform. The
+   inline ArrowSquareOut icon sits to the right with a small gap. */
+.detail-list .row .value a.external-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.topbar-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+.topbar-cell-label {
+  font-size: 0.625rem;
+  color: var(--text-color-kumo-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.topbar-cell-value {
+  font-size: 0.75rem;
+  color: var(--text-color-kumo-default);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
+}
+a.topbar-cell-value {
+  color: var(--text-color-kumo-link);
+}
+a.topbar-cell-value:hover {
+  text-decoration: underline;
+}
+
+.app-page {
+  padding: 1.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 1200px;
+  width: 100%;
+}
+
+/* ---------- Page header (icon + title + description + actions) ---------- */
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.page-header-text h1 {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.01em;
+  color: var(--text-color-kumo-strong);
+}
+
+.page-header-icon {
+  width: 26px;
+  height: 26px;
+  color: var(--text-color-kumo-default);
+}
+
+.page-header-description {
+  margin: 0.4rem 0 0;
+  color: var(--text-color-kumo-subtle);
+  font-size: 0.875rem;
+}
+
+.page-header-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ---------- Section card (each LayerCard inside a page) ---------- */
+
+.section-card {
+  padding: 1.25rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.section-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-color-kumo-strong);
+}
+
+.section-description {
+  margin: 0.25rem 0 0;
+  color: var(--text-color-kumo-subtle);
+  font-size: 0.8125rem;
+}
+
+.section-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* ---------- Tables ---------- */
+
+.kv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.kv-table th,
+.kv-table td {
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--color-kumo-fill);
+  vertical-align: middle;
+}
+
+.kv-table th {
+  font-weight: 500;
+  color: var(--text-color-kumo-subtle);
+  font-size: 0.75rem;
+  text-transform: none;
+  background: transparent;
+}
+
+.kv-table tr.clickable {
+  cursor: pointer;
+}
+.kv-table tr.clickable:hover td {
+  background: var(--color-kumo-tint);
+}
+
+.kv-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* ---------- Detail rows (label : value) ---------- */
+
+.detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.detail-list .row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+}
+.detail-list .row .label {
+  width: 130px;
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+  color: var(--text-color-kumo-subtle);
+}
+.detail-list .row .value {
+  font-size: 0.8125rem;
+  color: var(--text-color-kumo-default);
+  word-break: break-all;
+}
+
+/* ---------- JSON viewer ---------- */
+
+.json-viewer {
+  background: var(--color-kumo-recessed);
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  white-space: pre;
+  overflow: auto;
+  max-height: 400px;
+  border: 1px solid var(--color-kumo-fill);
+}
+
+/* ---------- Layout helpers ---------- */
+
+.row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.field-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.field-stack > .field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.field-stack > .field > label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-color-kumo-default);
+}
+
+/* ---------- Empty / loading state ---------- */
+
+.empty-state {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  color: var(--text-color-kumo-subtle);
+  font-size: 0.875rem;
+}
+
+/* ---------- Terminal ---------- */
+
+.terminal-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.terminal-tab {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  background: var(--color-kumo-tint);
+  color: var(--text-color-kumo-default);
+  padding: 0.3rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+  user-select: none;
+}
+.terminal-tab.active {
+  border-color: var(--color-kumo-line);
+  background: var(--color-kumo-base);
+}
+.terminal-tab-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-color-kumo-subtle);
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 0;
+}
+.terminal-tab-close:hover {
+  color: var(--color-kumo-danger);
+  background: var(--color-kumo-recessed);
+}
+.terminal-tab-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-kumo-fill);
+  background: var(--color-kumo-base);
+  color: var(--text-color-kumo-subtle);
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.terminal-tab-add:hover {
+  color: var(--text-color-kumo-default);
+  background: var(--color-kumo-tint);
+}
+.terminal-pane {
+  height: 360px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #1a1816;
+  border: 1px solid var(--color-kumo-fill);
+}
+
+/* ---------- Multi-pill input (hosts, "is one of" values, etc.) ---------- */
+
+/* Mirrors Kumo's Field primitive: label → control → description with gap-2
+   between rows, so MultiPillInput aligns with Kumo Inputs in .rule-grid. */
+.multi-pill {
+  display: grid;
+  gap: 0.5rem;
+}
+/* Match Kumo's Field label/description tokens (14px / 13px) so MultiPillInput
+   labels line up with Kumo Inputs and Selects in .rule-grid. Hardcoding 1rem
+   here previously rendered the label at 16px and pushed the control row down. */
+.multi-pill-label {
+  font-size: var(--text-base);
+  font-weight: 500;
+  line-height: var(--text-base--line-height);
+  color: var(--text-color-kumo-default);
+  margin: 0;
+}
+.multi-pill-description {
+  font-size: var(--text-sm);
+  line-height: var(--text-sm--line-height);
+  font-weight: 400;
+  color: var(--text-color-kumo-subtle);
+  margin: 0;
+}
+.multi-pill-box {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0.3rem 0.4rem;
+  background: var(--color-kumo-base);
+  border: 1px solid var(--color-kumo-line);
+  border-radius: 8px;
+  min-height: 36px;
+}
+.multi-pill-box:focus-within {
+  border-color: var(--color-kumo-focus);
+  box-shadow: 0 0 0 1.5px var(--color-kumo-focus);
+}
+.multi-pill-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: var(--color-kumo-tint);
+  color: var(--text-color-kumo-default);
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-family: "SF Mono", "Fira Code", monospace;
+  border: 1px solid var(--color-kumo-fill);
+  white-space: nowrap;
+}
+.multi-pill-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border: none;
+  background: transparent;
+  color: var(--text-color-kumo-subtle);
+  cursor: pointer;
+  padding: 0;
+  border-radius: 9999px;
+}
+.multi-pill-remove:hover {
+  color: var(--color-kumo-danger);
+}
+.multi-pill-input {
+  flex: 1;
+  min-width: 140px;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  height: auto !important;
+  padding: 0 0.25rem !important;
+  font-size: 0.8125rem !important;
+  font-family: inherit;
+}
+
+/* ---------- Tags / chips ---------- */
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  min-height: 1.75rem;
+}
+.tag-chip {
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+  background: var(--color-kumo-tint);
+  border: 1px solid var(--color-kumo-fill);
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-family: "SF Mono", "Fira Code", monospace;
+  color: var(--text-color-kumo-default);
+}
+.tag-chip .remove {
+  cursor: pointer;
+  color: var(--text-color-kumo-subtle);
+}
+.tag-chip .remove:hover {
+  color: var(--color-kumo-danger);
+}
+
+/* ---------- Egress rule cards ---------- */
+
+.rule-stack,
+.applies-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rule-card {
+  background: var(--color-kumo-recessed);
+  border: 1px solid var(--color-kumo-fill);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.rule-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Header-injection / VPC-service input rows. Each cell is a Kumo Field (or a
+   MultiPillInput, which mirrors Kumo's label → control → description layout),
+   so the controls sit in the same internal row across columns and stay aligned
+   regardless of how long any description wraps. */
+.rule-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items: start;
+  gap: 0.65rem 0.85rem;
+}
+.rule-grid > * {
+  min-width: 0;
+}
+@media (max-width: 760px) {
+  .rule-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* "Applies to" matcher card */
+
+.apply-card {
+  background: var(--color-kumo-recessed);
+  border: 1px solid var(--color-kumo-fill);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.apply-row {
+  display: grid;
+  grid-template-columns: 1.5fr 0.9fr auto;
+  gap: 0.65rem;
+  align-items: end;
+}
+@media (max-width: 760px) {
+  .apply-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.apply-remove {
+  align-self: end;
+}
+
+.proxy-textarea {
+  width: 100%;
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: 0.78rem;
+  background: var(--color-kumo-base);
+  color: var(--text-color-kumo-default);
+  border: 1px solid var(--color-kumo-line);
+  border-radius: 6px;
+  padding: 0.6rem 0.7rem;
+  min-height: 160px;
+  resize: vertical;
+  line-height: 1.55;
+}
+.proxy-textarea:focus {
+  outline: none;
+  border-color: var(--color-kumo-focus);
+  box-shadow: 0 0 0 1.5px var(--color-kumo-focus);
+}
+
+/* Send message input is shorter than the proxy textarea */
+.proxy-textarea.send-message {
+  min-height: 60px;
+  font-family: inherit;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+/* Inline external-link affordance next to a row title */
+.row-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.row-external {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-color-kumo-subtle);
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+}
+.row-external:hover {
+  color: var(--text-color-kumo-link);
+  background: var(--color-kumo-tint);
+  text-decoration: none;
+}
+
+/* ---------- Event rows (webhook + session events) ---------- */
+
+.event-row {
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--color-kumo-fill);
+  cursor: pointer;
+}
+.event-row:hover {
+  background: var(--color-kumo-tint);
+}
+.event-summary {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.event-detail {
+  margin-top: 0.6rem;
+  /* Detail body is interactive (selectable JSON) — break out of the row's
+     pointer/click semantics so users can highlight + copy without the
+     row's onClick collapsing the row underneath them. */
+  cursor: text;
+  user-select: text;
+}
+
+/* Compact icon-only button used inline in event rows next to the type
+   badge. Sits flush with the badge and dims when not hovered. */
+.copy-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-color-kumo-subtle);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.copy-icon-btn:hover {
+  background: var(--color-kumo-fill);
+  color: var(--text-color-kumo-default);
+  border-color: var(--color-kumo-fill);
+}
+.copy-icon-btn:focus-visible {
+  outline: 2px solid var(--color-accent-blue, #2872f0);
+  outline-offset: 1px;
+}
+
+/* ---------- Workspace browser ---------- */
+
+.workspace-browser {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  min-height: 360px;
+}
+
+.workspace-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-kumo-fill);
+  flex-wrap: wrap;
+}
+
+.workspace-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+  font-size: 0.8125rem;
+}
+.workspace-crumb-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.workspace-crumb-link {
+  background: none;
+  border: none;
+  padding: 0.1rem 0.25rem;
+  font: inherit;
+  color: var(--text-color-kumo-link);
+  cursor: pointer;
+  border-radius: 4px;
+}
+.workspace-crumb-link:hover {
+  background: var(--color-kumo-tint);
+}
+.workspace-crumb-current {
+  padding: 0.1rem 0.25rem;
+  color: var(--text-color-kumo-default);
+  font-weight: 600;
+}
+
+.workspace-summary {
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.workspace-panes {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) 1fr;
+  gap: 0.85rem;
+  min-height: 320px;
+}
+@media (max-width: 760px) {
+  .workspace-panes {
+    grid-template-columns: 1fr;
+  }
+}
+
+.workspace-list {
+  border: 1px solid var(--color-kumo-fill);
+  border-radius: 8px;
+  background: var(--color-kumo-recessed);
+  overflow: auto;
+  max-height: 480px;
+}
+
+.workspace-entries {
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem;
+}
+
+.workspace-entry {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.55rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: var(--text-color-kumo-default);
+}
+.workspace-entry:hover {
+  background: var(--color-kumo-tint);
+}
+.workspace-entry.selected {
+  background: var(--color-kumo-base);
+  border-color: var(--color-kumo-line);
+}
+.workspace-entry-icon {
+  color: var(--text-color-kumo-subtle);
+  flex-shrink: 0;
+}
+.workspace-entry-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.8125rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "SF Mono", "Fira Code", monospace;
+}
+.workspace-entry-size {
+  font-size: 0.7rem;
+  flex-shrink: 0;
+}
+
+.workspace-preview {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-kumo-fill);
+  border-radius: 8px;
+  background: var(--color-kumo-recessed);
+  min-height: 320px;
+  max-height: 600px;
+}
+
+.workspace-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  border-bottom: 1px solid var(--color-kumo-fill);
+}
+.workspace-preview-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.workspace-preview-meta strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-preview-body {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  flex: 1;
+  overflow: auto;
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text-color-kumo-default);
+}
+
+.workspace-preview-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---------- About page ---------- */
+
+/* Hero blurb — large lead paragraph above the feature grid. Sits inside a
+   Section card so it picks up the standard surface treatment, then leans
+   on Kumo tokens for a slightly raised feel via tint background. */
+.about-lead {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--text-color-kumo-default);
+}
+.about-lead strong {
+  color: var(--text-color-kumo-default);
+}
+
+/* Three-up "key fact" strip used under the lead — short label/value pairs
+   that summarise the architecture without the user having to read prose. */
+.about-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+@media (max-width: 760px) {
+  .about-facts {
+    grid-template-columns: 1fr;
+  }
+}
+.about-fact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--color-kumo-fill);
+  border-radius: 8px;
+  background: var(--color-kumo-recessed);
+}
+.about-fact-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-color-kumo-subtle);
+}
+.about-fact-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-color-kumo-default);
+}
+
+/* Feature & product tile grid. Auto-fit so it collapses gracefully on
+   narrower viewports without media-query maintenance. */
+.about-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.85rem;
+}
+
+.about-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 1px solid var(--color-kumo-fill);
+  border-radius: 10px;
+  background: var(--color-kumo-recessed);
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.about-tile.linkable {
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+}
+.about-tile.linkable:hover {
+  border-color: var(--color-kumo-line);
+  background: var(--color-kumo-base);
+  text-decoration: none;
+}
+
+.about-tile-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.about-tile-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--color-kumo-tint);
+  color: var(--text-color-kumo-default);
+  flex-shrink: 0;
+}
+.about-tile-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-color-kumo-default);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.about-tile-arrow {
+  color: var(--text-color-kumo-subtle);
+}
+.about-tile.linkable:hover .about-tile-arrow {
+  color: var(--text-color-kumo-default);
+}
+.about-tile-body {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--text-color-kumo-subtle);
+}
+
+/* Category label sitting above each platform-products tile group. */
+.about-category {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  color: var(--text-color-kumo-subtle);
+  margin: 0 0 0.6rem;
+}
+.about-category + .about-tiles {
+  margin-bottom: 1.25rem;
+}
+.about-category:not(:first-child) {
+  margin-top: 0.5rem;
+}
+
+/* Footnote under the platform grid — small print explaining how to wire
+   up a new binding. */
+.about-footnote {
+  margin: 1rem 0 0;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.75rem;
+  line-height: 1.55;
+  color: var(--text-color-kumo-subtle);
+  border-left: 2px solid var(--color-kumo-line);
+  background: var(--color-kumo-tint);
+  border-radius: 0 6px 6px 0;
+}
+
+/* ---------- Backlink ---------- */
+
+.back-link {
+  font-size: 0.8125rem;
+  color: var(--text-color-kumo-subtle);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.back-link:hover {
+  color: var(--text-color-kumo-default);
+}
+
+@media (max-width: 760px) {
+  .row-2 {
+    grid-template-columns: 1fr;
+  }
+  .app-page {
+    padding: 1rem;
+  }
+  .app-topbar {
+    padding: 0.5rem 0.75rem;
+    gap: 0.5rem;
+  }
+  .app-topbar-meta {
+    gap: 0.75rem;
+  }
+  .topbar-cell-value {
+    max-width: 120px;
+  }
+}
+
+/* ---------- Markdown documentation pages ---------- */
+
+/* Scoped to .markdown-body so the typography rules don't leak into other
+   views. The element receives HTML produced by `marked` from /docs/*.md.
+   Tries to match the rest of the dashboard's spacing/colour vocabulary —
+   we lean on the same Kumo tokens used elsewhere. */
+.markdown-body {
+  max-width: 760px;
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: var(--text-color-kumo-default);
+}
+
+.markdown-body > *:first-child {
+  margin-top: 0;
+}
+.markdown-body > *:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4 {
+  color: var(--text-color-kumo-strong);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 2rem 0 0.6rem;
+  scroll-margin-top: 80px;
+}
+.markdown-body h1 {
+  font-size: 1.5rem;
+  margin-top: 0;
+}
+.markdown-body h2 {
+  font-size: 1.125rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--color-kumo-fill);
+}
+.markdown-body h3 {
+  font-size: 1rem;
+}
+.markdown-body h4 {
+  font-size: 0.9375rem;
+}
+
+.markdown-body p {
+  margin: 0.85rem 0;
+}
+
+.markdown-body a {
+  color: var(--text-color-kumo-link);
+}
+.markdown-body a:hover {
+  text-decoration: underline;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  margin: 0.85rem 0;
+  padding-left: 1.4rem;
+}
+.markdown-body li {
+  margin: 0.25rem 0;
+}
+.markdown-body li > p {
+  margin: 0.25rem 0;
+}
+
+.markdown-body strong {
+  color: var(--text-color-kumo-strong);
+  font-weight: 600;
+}
+
+.markdown-body code {
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: 0.85em;
+  padding: 0.05rem 0.35rem;
+  border-radius: 4px;
+  background: var(--color-kumo-tint);
+  color: var(--text-color-kumo-strong);
+}
+
+.markdown-body pre {
+  margin: 1rem 0;
+  padding: 0.9rem 1rem;
+  background: var(--color-kumo-tint);
+  border: 1px solid var(--color-kumo-line);
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+.markdown-body pre code {
+  padding: 0;
+  background: transparent;
+  font-size: inherit;
+  color: var(--text-color-kumo-default);
+}
+
+.markdown-body blockquote {
+  margin: 1rem 0;
+  padding: 0.6rem 1rem;
+  border-left: 3px solid var(--color-kumo-line);
+  color: var(--text-color-kumo-subtle);
+  background: var(--color-kumo-tint);
+  border-radius: 0 6px 6px 0;
+}
+.markdown-body blockquote > *:first-child {
+  margin-top: 0;
+}
+.markdown-body blockquote > *:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body hr {
+  margin: 2rem 0;
+  border: none;
+  border-top: 1px solid var(--color-kumo-fill);
+}
+
+.markdown-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.875rem;
+}
+.markdown-body th,
+.markdown-body td {
+  text-align: left;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--color-kumo-fill);
+}
+.markdown-body th {
+  font-weight: 600;
+  color: var(--text-color-kumo-strong);
+  background: var(--color-kumo-tint);
+}
+
+.markdown-body img {
+  max-width: 100%;
+  border-radius: 6px;
+}
+
+/* Prev/next pager rendered at the bottom of every doc page. Buttons are
+   plain elements styled to match Kumo's ghost variant. */
+.docs-pager {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-kumo-fill);
+}
+
+.docs-pager-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.6rem 0.85rem;
+  background: var(--color-kumo-base);
+  border: 1px solid var(--color-kumo-line);
+  border-radius: 8px;
+  color: var(--text-color-kumo-default);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  transition: background 0.15s ease;
+}
+.docs-pager-link:hover {
+  background: var(--color-kumo-tint);
+}
+.docs-pager-link.next {
+  justify-content: flex-end;
+  text-align: right;
+  grid-column: 2;
+}
+.docs-pager-link.prev {
+  grid-column: 1;
+}
+
+.docs-pager-stack {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.docs-pager-stack.right {
+  align-items: flex-end;
+}
+
+.docs-pager-label {
+  font-size: 0.6875rem;
+  color: var(--text-color-kumo-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.docs-pager-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-color-kumo-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
